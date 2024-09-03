@@ -200,84 +200,113 @@ module.exports = function (User) {
 			}
 
 			db.parseIntFields(user, intFields, requestedFields);
-
-			if (user.hasOwnProperty('username')) {
-				parseDisplayName(user, uidToSettings);
-				user.username = validator.escape(user.username ? user.username.toString() : '');
-			}
-
-			if (user.hasOwnProperty('email')) {
-				user.email = validator.escape(user.email ? user.email.toString() : '');
-			}
+			fixUserFields(user, uidToSettings);
 
 			if (!user.uid) {
-				for (const [key, value] of Object.entries(User.guestData)) {
-					user[key] = value;
-				}
-				user.picture = User.getDefaultAvatar();
+				setGuestData(user);
 			}
 
-			if (user.hasOwnProperty('groupTitle')) {
-				parseGroupTitle(user);
-			}
-
-			if (user.picture && user.picture === user.uploadedpicture) {
-				user.uploadedpicture = user.picture.startsWith('http') ? user.picture : relative_path + user.picture;
-				user.picture = user.uploadedpicture;
-			} else if (user.uploadedpicture) {
-				user.uploadedpicture = user.uploadedpicture.startsWith('http') ? user.uploadedpicture : relative_path + user.uploadedpicture;
-			}
-			if (meta.config.defaultAvatar && !user.picture) {
-				user.picture = User.getDefaultAvatar();
-			}
+			handleGroupTitle(user);
+			handlePicture(user);
 
 			if (user.hasOwnProperty('status') && user.hasOwnProperty('lastonline')) {
 				user.status = User.getStatus(user);
 			}
 
-			for (let i = 0; i < fieldsToRemove.length; i += 1) {
-				user[fieldsToRemove[i]] = undefined;
-			}
+			removeFields(user, fieldsToRemove);
 
-			// User Icons
-			if (requestedFields.includes('picture') && user.username && user.uid && !meta.config.defaultAvatar) {
-				if (!iconBackgrounds.includes(user['icon:bgColor'])) {
-					const nameAsIndex = Array.from(user.username).reduce((cur, next) => cur + next.charCodeAt(), 0);
-					user['icon:bgColor'] = iconBackgrounds[nameAsIndex % iconBackgrounds.length];
-				}
-				user['icon:text'] = (user.username[0] || '').toUpperCase();
-			}
-
-			if (user.hasOwnProperty('joindate')) {
-				user.joindateISO = utils.toISOString(user.joindate);
-			}
-
-			if (user.hasOwnProperty('lastonline')) {
-				user.lastonlineISO = utils.toISOString(user.lastonline) || user.joindateISO;
-			}
-
-			if (user.hasOwnProperty('mutedUntil')) {
-				user.muted = user.mutedUntil > Date.now();
-			}
-
-			if (user.hasOwnProperty('banned') || user.hasOwnProperty('banned:expire')) {
-				const result = User.bans.calcExpiredFromUserData(user);
-				user.banned = result.banned;
-				const unban = result.banned && result.banExpired;
-				user.banned_until = unban ? 0 : user['banned:expire'];
-				user.banned_until_readable = user.banned_until && !unban ? utils.toISOString(user.banned_until) : 'Not Banned';
-				if (unban) {
-					unbanUids.push(user.uid);
-					user.banned = false;
-				}
-			}
+			handleUserIcons(user, requestedFields);
+			handleDates(user);
+			handleMuteAndBan(user, unbanUids);
 		});
+
 		if (unbanUids.length) {
 			await User.bans.unban(unbanUids, '[[user:info.ban-expired]]');
 		}
 
 		return await plugins.hooks.fire('filter:users.get', users);
 	}
+
+	function fixUserFields(user, uidToSettings) {
+		if (user.hasOwnProperty('username')) {
+			parseDisplayName(user, uidToSettings);
+			user.username = validator.escape(user.username ? user.username.toString() : '');
+		}
+
+		if (user.hasOwnProperty('email')) {
+			user.email = validator.escape(user.email ? user.email.toString() : '');
+		}
+	}
+
+	function setGuestData(user) {
+		for (const [key, value] of Object.entries(User.guestData)) {
+			user[key] = value;
+		}
+		user.picture = User.getDefaultAvatar();
+	}
+
+	function handleGroupTitle(user) {
+		if (user.hasOwnProperty('groupTitle')) {
+			parseGroupTitle(user);
+		}
+	}
+
+	function handlePicture(user) {
+		if (user.picture && user.picture === user.uploadedpicture) {
+			user.uploadedpicture = user.picture.startsWith('http') ? user.picture : relative_path + user.picture;
+			user.picture = user.uploadedpicture;
+		} else if (user.uploadedpicture) {
+			user.uploadedpicture = user.uploadedpicture.startsWith('http') ? user.uploadedpicture : relative_path + user.uploadedpicture;
+		}
+		if (meta.config.defaultAvatar && !user.picture) {
+			user.picture = User.getDefaultAvatar();
+		}
+	}
+
+	function removeFields(user, fieldsToRemove) {
+		for (let i = 0; i < fieldsToRemove.length; i += 1) {
+			user[fieldsToRemove[i]] = undefined;
+		}
+	}
+
+	function handleUserIcons(user, requestedFields) {
+		if (requestedFields.includes('picture') && user.username && user.uid && !meta.config.defaultAvatar) {
+			if (!iconBackgrounds.includes(user['icon:bgColor'])) {
+				const nameAsIndex = Array.from(user.username).reduce((cur, next) => cur + next.charCodeAt(), 0);
+				user['icon:bgColor'] = iconBackgrounds[nameAsIndex % iconBackgrounds.length];
+			}
+			user['icon:text'] = (user.username[0] || '').toUpperCase();
+		}
+	}
+
+	function handleDates(user) {
+		if (user.hasOwnProperty('joindate')) {
+			user.joindateISO = utils.toISOString(user.joindate);
+		}
+
+		if (user.hasOwnProperty('lastonline')) {
+			user.lastonlineISO = utils.toISOString(user.lastonline) || user.joindateISO;
+		}
+	}
+
+	function handleMuteAndBan(user, unbanUids) {
+		if (user.hasOwnProperty('mutedUntil')) {
+			user.muted = user.mutedUntil > Date.now();
+		}
+
+		if (user.hasOwnProperty('banned') || user.hasOwnProperty('banned:expire')) {
+			const result = User.bans.calcExpiredFromUserData(user);
+			user.banned = result.banned;
+			const unban = result.banned && result.banExpired;
+			user.banned_until = unban ? 0 : user['banned:expire'];
+			user.banned_until_readable = user.banned_until && !unban ? utils.toISOString(user.banned_until) : 'Not Banned';
+			if (unban) {
+				unbanUids.push(user.uid);
+				user.banned = false;
+			}
+		}
+	}
+
 
 	function parseDisplayName(user, uidToSettings) {
 		let showfullname = parseInt(meta.config.showfullname, 10) === 1;
