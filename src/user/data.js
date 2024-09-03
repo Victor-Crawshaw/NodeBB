@@ -181,7 +181,6 @@ module.exports = function (User) {
 	};
 
 	async function modifyUserData(users, requestedFields, fieldsToRemove) {
-		// console.log('Victor Crawshaw');
 		let uidToSettings = {};
 		if (meta.config.showFullnameAsDisplayName) {
 			const uids = users.map(user => user.uid);
