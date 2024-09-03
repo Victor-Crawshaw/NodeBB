@@ -216,8 +216,23 @@ module.exports = function (User) {
 			for (let i = 0; i < fieldsToRemove.length; i += 1) {
 				user[fieldsToRemove[i]] = undefined;
 			}
-			handleUserIcons(user, requestedFields);
-			handleDates(user);
+
+			if (requestedFields.includes('picture') && user.username && user.uid && !meta.config.defaultAvatar) {
+				if (!iconBackgrounds.includes(user['icon:bgColor'])) {
+					const nameAsIndex = Array.from(user.username).reduce((cur, next) => cur + next.charCodeAt(), 0);
+					user['icon:bgColor'] = iconBackgrounds[nameAsIndex % iconBackgrounds.length];
+				}
+				user['icon:text'] = (user.username[0] || '').toUpperCase();
+			}
+
+			if (user.hasOwnProperty('joindate')) {
+				user.joindateISO = utils.toISOString(user.joindate);
+			}
+
+			if (user.hasOwnProperty('lastonline')) {
+				user.lastonlineISO = utils.toISOString(user.lastonline) || user.joindateISO;
+			}
+
 			handleMuteAndBan(user, unbanUids);
 		});
 
@@ -261,26 +276,6 @@ module.exports = function (User) {
 		}
 		if (meta.config.defaultAvatar && !user.picture) {
 			user.picture = User.getDefaultAvatar();
-		}
-	}
-
-	function handleUserIcons(user, requestedFields) {
-		if (requestedFields.includes('picture') && user.username && user.uid && !meta.config.defaultAvatar) {
-			if (!iconBackgrounds.includes(user['icon:bgColor'])) {
-				const nameAsIndex = Array.from(user.username).reduce((cur, next) => cur + next.charCodeAt(), 0);
-				user['icon:bgColor'] = iconBackgrounds[nameAsIndex % iconBackgrounds.length];
-			}
-			user['icon:text'] = (user.username[0] || '').toUpperCase();
-		}
-	}
-
-	function handleDates(user) {
-		if (user.hasOwnProperty('joindate')) {
-			user.joindateISO = utils.toISOString(user.joindate);
-		}
-
-		if (user.hasOwnProperty('lastonline')) {
-			user.lastonlineISO = utils.toISOString(user.lastonline) || user.joindateISO;
 		}
 	}
 
