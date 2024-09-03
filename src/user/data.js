@@ -208,13 +208,8 @@ module.exports = function (User) {
 
 			handleGroupTitle(user);
 			handlePicture(user);
-
-			if (user.hasOwnProperty('status') && user.hasOwnProperty('lastonline')) {
-				user.status = User.getStatus(user);
-			}
-
+			handleOnlineStatus(user);
 			removeFields(user, fieldsToRemove);
-
 			handleUserIcons(user, requestedFields);
 			handleDates(user);
 			handleMuteAndBan(user, unbanUids);
@@ -260,6 +255,12 @@ module.exports = function (User) {
 		}
 		if (meta.config.defaultAvatar && !user.picture) {
 			user.picture = User.getDefaultAvatar();
+		}
+	}
+
+	function handleOnlineStatus(user) {
+		if (user.hasOwnProperty('status') && user.hasOwnProperty('lastonline')) {
+			user.status = User.getStatus(user);
 		}
 	}
 
