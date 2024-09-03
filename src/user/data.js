@@ -209,6 +209,10 @@ module.exports = function (User) {
 			handleGroupTitle(user);
 			handlePicture(user);
 
+			if (meta.config.defaultAvatar && !user.picture) {
+				user.picture = User.getDefaultAvatar();
+			}
+
 			if (user.hasOwnProperty('status') && user.hasOwnProperty('lastonline')) {
 				user.status = User.getStatus(user);
 			}
@@ -258,9 +262,6 @@ module.exports = function (User) {
 			user.picture = user.uploadedpicture;
 		} else if (user.uploadedpicture) {
 			user.uploadedpicture = user.uploadedpicture.startsWith('http') ? user.uploadedpicture : relative_path + user.uploadedpicture;
-		}
-		if (meta.config.defaultAvatar && !user.picture) {
-			user.picture = User.getDefaultAvatar();
 		}
 	}
 
