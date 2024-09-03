@@ -217,8 +217,19 @@ module.exports = function (User) {
 				user.picture = User.getDefaultAvatar();
 			}
 
-			handleGroupTitle(user);
-			handlePicture(user);
+			if (user.hasOwnProperty('groupTitle')) {
+				parseGroupTitle(user);
+			}
+
+			if (user.picture && user.picture === user.uploadedpicture) {
+				user.uploadedpicture = user.picture.startsWith('http') ? user.picture : relative_path + user.picture;
+				user.picture = user.uploadedpicture;
+			} else if (user.uploadedpicture) {
+				user.uploadedpicture = user.uploadedpicture.startsWith('http') ? user.uploadedpicture : relative_path + user.uploadedpicture;
+			}
+			if (meta.config.defaultAvatar && !user.picture) {
+				user.picture = User.getDefaultAvatar();
+			}
 			handleOnlineStatus(user);
 			removeFields(user, fieldsToRemove);
 			handleUserIcons(user, requestedFields);
@@ -231,25 +242,6 @@ module.exports = function (User) {
 		}
 
 		return await plugins.hooks.fire('filter:users.get', users);
-	}
-
-
-	function handleGroupTitle(user) {
-		if (user.hasOwnProperty('groupTitle')) {
-			parseGroupTitle(user);
-		}
-	}
-
-	function handlePicture(user) {
-		if (user.picture && user.picture === user.uploadedpicture) {
-			user.uploadedpicture = user.picture.startsWith('http') ? user.picture : relative_path + user.picture;
-			user.picture = user.uploadedpicture;
-		} else if (user.uploadedpicture) {
-			user.uploadedpicture = user.uploadedpicture.startsWith('http') ? user.uploadedpicture : relative_path + user.uploadedpicture;
-		}
-		if (meta.config.defaultAvatar && !user.picture) {
-			user.picture = User.getDefaultAvatar();
-		}
 	}
 
 	function handleOnlineStatus(user) {
