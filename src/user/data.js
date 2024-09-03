@@ -230,8 +230,13 @@ module.exports = function (User) {
 			if (meta.config.defaultAvatar && !user.picture) {
 				user.picture = User.getDefaultAvatar();
 			}
-			handleOnlineStatus(user);
-			removeFields(user, fieldsToRemove);
+			if (user.hasOwnProperty('status') && user.hasOwnProperty('lastonline')) {
+				user.status = User.getStatus(user);
+			}
+
+			for (let i = 0; i < fieldsToRemove.length; i += 1) {
+				user[fieldsToRemove[i]] = undefined;
+			}
 			handleUserIcons(user, requestedFields);
 			handleDates(user);
 			handleMuteAndBan(user, unbanUids);
@@ -242,18 +247,6 @@ module.exports = function (User) {
 		}
 
 		return await plugins.hooks.fire('filter:users.get', users);
-	}
-
-	function handleOnlineStatus(user) {
-		if (user.hasOwnProperty('status') && user.hasOwnProperty('lastonline')) {
-			user.status = User.getStatus(user);
-		}
-	}
-
-	function removeFields(user, fieldsToRemove) {
-		for (let i = 0; i < fieldsToRemove.length; i += 1) {
-			user[fieldsToRemove[i]] = undefined;
-		}
 	}
 
 	function handleUserIcons(user, requestedFields) {
