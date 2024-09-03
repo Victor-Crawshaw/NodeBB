@@ -211,7 +211,10 @@ module.exports = function (User) {
 			}
 
 			if (!user.uid) {
-				setGuestData(user);
+				for (const [key, value] of Object.entries(User.guestData)) {
+					user[key] = value;
+				}
+				user.picture = User.getDefaultAvatar();
 			}
 
 			handleGroupTitle(user);
@@ -230,12 +233,6 @@ module.exports = function (User) {
 		return await plugins.hooks.fire('filter:users.get', users);
 	}
 
-	function setGuestData(user) {
-		for (const [key, value] of Object.entries(User.guestData)) {
-			user[key] = value;
-		}
-		user.picture = User.getDefaultAvatar();
-	}
 
 	function handleGroupTitle(user) {
 		if (user.hasOwnProperty('groupTitle')) {
