@@ -201,35 +201,14 @@ module.exports = function (User) {
 
 			db.parseIntFields(user, intFields, requestedFields);
 
-			if (user.hasOwnProperty('username')) {
-				parseDisplayName(user, uidToSettings);
-				user.username = validator.escape(user.username ? user.username.toString() : '');
-			}
-
-			if (user.hasOwnProperty('email')) {
-				user.email = validator.escape(user.email ? user.email.toString() : '');
-			}
-
+			fixUserFields(user, uidToSettings);
 			if (!user.uid) {
-				for (const [key, value] of Object.entries(User.guestData)) {
-					user[key] = value;
-				}
-				user.picture = User.getDefaultAvatar();
+				setGuestData(user);
 			}
 
-			if (user.hasOwnProperty('groupTitle')) {
-				parseGroupTitle(user);
-			}
+			handleGroupTitle(user);
+			handlePicture(user);
 
-			if (user.picture && user.picture === user.uploadedpicture) {
-				user.uploadedpicture = user.picture.startsWith('http') ? user.picture : relative_path + user.picture;
-				user.picture = user.uploadedpicture;
-			} else if (user.uploadedpicture) {
-				user.uploadedpicture = user.uploadedpicture.startsWith('http') ? user.uploadedpicture : relative_path + user.uploadedpicture;
-			}
-			if (meta.config.defaultAvatar && !user.picture) {
-				user.picture = User.getDefaultAvatar();
-			}
 			if (user.hasOwnProperty('status') && user.hasOwnProperty('lastonline')) {
 				user.status = User.getStatus(user);
 			}
@@ -247,6 +226,42 @@ module.exports = function (User) {
 		}
 
 		return await plugins.hooks.fire('filter:users.get', users);
+	}
+
+	function fixUserFields(user, uidToSettings) {
+		if (user.hasOwnProperty('username')) {
+			parseDisplayName(user, uidToSettings);
+			user.username = validator.escape(user.username ? user.username.toString() : '');
+		}
+
+		if (user.hasOwnProperty('email')) {
+			user.email = validator.escape(user.email ? user.email.toString() : '');
+		}
+	}
+
+	function setGuestData(user) {
+		for (const [key, value] of Object.entries(User.guestData)) {
+			user[key] = value;
+		}
+		user.picture = User.getDefaultAvatar();
+	}
+
+	function handleGroupTitle(user) {
+		if (user.hasOwnProperty('groupTitle')) {
+			parseGroupTitle(user);
+		}
+	}
+
+	function handlePicture(user) {
+		if (user.picture && user.picture === user.uploadedpicture) {
+			user.uploadedpicture = user.picture.startsWith('http') ? user.picture : relative_path + user.picture;
+			user.picture = user.uploadedpicture;
+		} else if (user.uploadedpicture) {
+			user.uploadedpicture = user.uploadedpicture.startsWith('http') ? user.uploadedpicture : relative_path + user.uploadedpicture;
+		}
+		if (meta.config.defaultAvatar && !user.picture) {
+			user.picture = User.getDefaultAvatar();
+		}
 	}
 
 	function handleUserIcons(user, requestedFields) {
